@@ -1,0 +1,4 @@
+(executable
+ (public_name hello_dream)
+ (name main)
+ (libraries hello_dream dream dream-html))

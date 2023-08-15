@@ -9,6 +9,7 @@ let todo_checkbox todo =
   let open HTML in
   input
     [ type_ "checkbox"
+    ; class_ "toggle"
     ; Hx.patch "/todo/%n" todo.id
     ; Hx.swap "outerHTML"
     ; (if todo.completed then checked else null_)
@@ -20,38 +21,59 @@ let todo_item todo =
   let open HTML in
   li
     []
-    [ todo_checkbox todo
-    ; txt "%n - %s" todo.id todo.name
-    ; button
-        [ Hx.delete "/todo/%n" todo.id; Hx.target "closest li"; Hx.swap "outerHTML" ]
-        [ txt "❌" ]
+    [ div
+        [ class_ "view" ]
+        [ todo_checkbox todo
+        ; label [] [ txt "%n - %s" todo.id todo.name ]
+        ; button
+            [ class_ "destroy"
+            ; Hx.delete "/todo/%n" todo.id
+            ; Hx.target "closest li"
+            ; Hx.swap "outerHTML"
+            ]
+            []
+        ]
     ]
 ;;
 
 let todo_list todos =
   let open Dream_html in
   let open HTML in
-  ul [ id "todo-list" ] @@ List.map todo_item todos
+  ul [ class_ "todo-list" ] @@ List.map todo_item todos
 ;;
 
 let index req todos =
   let open Dream_html in
   let open HTML in
   html
-    []
+    [ lang "eng" ]
     [ head
         []
-        [ title [] "Hello_dream"
+        [ meta [ name "viewport"; content "width=device-width, initial-scale=1" ]
+        ; title [] "hello-dream • TodoMVC"
+        ; link [ rel "stylesheet"; href "/static/styles.css" ]
         ; script [ src "https://unpkg.com/htmx.org@1.9.4" ] ""
-          (* ; script [ src "https://cdn.tailwindcss.com" ] "" *)
         ]
     ; body
         []
-        [ h1 [] [ txt "Hello, Dream" ]
-        ; form
-            [ Hx.put "/todo"; Hx.target "#todo-list"; Hx.swap "beforeend" ]
-            [ csrf_tag req; input [ name "name" ] ]
-        ; todo_list todos
+        [ section
+            [ class_ "todoapp" ]
+            [ header
+                [ class_ "header" ]
+                [ h1 [] [ txt "Hello, Dream" ]
+                ; form
+                    [ Hx.put "/todo"; Hx.target ".todo-list"; Hx.swap "beforeend" ]
+                    [ csrf_tag req
+                    ; input
+                        [ class_ "new-todo"
+                        ; name "name"
+                        ; placeholder "What needs to be done?"
+                        ; autofocus
+                        ]
+                    ]
+                ]
+            ; section [ class_ "main" ] [ todo_list todos ]
+            ]
         ]
     ]
 ;;
@@ -63,7 +85,8 @@ let () =
   @@ Dream.logger
   @@ Dream.memory_sessions
   @@ Dream.router
-       [ Dream.get "/" (fun req -> Dream_html.respond (index req !todos))
+       [ Dream.get "/static/**" (Dream.static "./static")
+       ; Dream.get "/" (fun req -> Dream_html.respond (index req !todos))
        ; Dream.put "/todo" (fun request ->
            let open Lwt.Syntax in
            let* form = Dream.form request in
